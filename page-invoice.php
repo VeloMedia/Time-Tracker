@@ -50,13 +50,12 @@ function ec_do_query() {
 add_action ( 'genesis_before_loop', 'tt_comp_invoice', 5 );
 function tt_comp_invoice() {
 	if ( isset( $_GET['doact'] ) && ( $_GET['doact'] == 'complete-invoice' ) ) {
-
-		foreach($_GET[ticket] as $tick ) {
-//			print_r($tick);
-			wp_set_object_terms($tick, 'invoiced', 'hstatus', true);
+		if ( isset( $_GET['ticket'] ) ) {
+			$ticket = $_GET['ticket'];
+			foreach($ticket as $tick ) {
+				wp_set_object_terms($tick, 'invoiced', 'hstatus', true);
+			}
 		}
-
-		//wp_die( print_r($_GET));
 	}
 }
 
