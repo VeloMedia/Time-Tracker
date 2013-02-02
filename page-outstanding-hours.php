@@ -13,11 +13,10 @@ add_action( 'genesis_before_loop', 'ec_do_query', 99 );
 function ec_do_query() {
 	global $paged;
 
-	$term = get_term( $_GET['client'], 'client' );
-	
+	$term = isset($_GET['client']) ? get_term( $_GET['client'], 'client' ) : NULL;
+
 	$args = array(
 		'post_type' => 'hours',
-		'client' => $term->name,
 		'orderby' => 'author',
 		'order' => 'ASC',
 		'tax_query' => array(
@@ -30,7 +29,11 @@ function ec_do_query() {
 		)
 	);
 
+	if ( $term ) {
+		$args['client'] = $term->name;
+	}
 
+/*
 	if($_GET['client']) {
 		$args['meta_query'] = array(
 			array(
@@ -40,7 +43,7 @@ function ec_do_query() {
 			)
 	);
 	}
-
+*/
 	$from_date = isset( $_GET['fromdate'] ) ? $_GET['fromdate'] : '';
 	$to_date = isset( $_GET['todate'] ) ? $_GET['todate'] : '';
 
@@ -48,12 +51,12 @@ function ec_do_query() {
 		$args['meta_query'][] = array(
 			array(
 				'key' => 'tt_work_date',
-				'value' => array( $fromdate, $todate ),
+				'value' => array( $from_date, $to_date ),
 				'compare' => 'BETWEEN'
 			)
 		);
 	}
-	
+
 	query_posts( wp_parse_args( $args ) );
 }
 
@@ -69,13 +72,15 @@ function tt_do_title() {
 	//echo '<input type="hidden" name="doact" value="make-invoice">';
 	echo '<div class="invoice-form">';
 
+	$client_id = isset( $_GET['client'] ) ? (int) $_GET['client'] : -1;
+
 	$args = array(
     'orderby'            => 'title',
     'order'              => 'ASC',
 	'show_option_none'   => 'Please Select',
     'hide_empty'         => 1,
     'echo'               => 1,
-    'selected'           => $_GET['client'],
+    'selected'           => $client_id,
     'name'               => 'client',
     'class'              => 'postform',
     'taxonomy'           => 'client',
@@ -125,7 +130,7 @@ function short_post() {
 	global $wp_query;
 	$calculate_user_total_hours = FALSE;
 	$current_post = $wp_query->current_post;
-	if ( $current_post + 1 > $wp_query->post_count ) {
+	if ( $current_post + 1 >= $wp_query->post_count ) {
 		$calculate_user_total_hours = TRUE;
 	}
 	elseif ( $current_post >= 0 ) {
@@ -155,7 +160,7 @@ function short_post() {
 	else {
 		$class_separator = '';
 	}
-	
+
 	// figure out if the item has already been invoiced
 	if ( has_term( 'invoiced', 'hstatus')) {
 		$row_color = 'invoiced';
@@ -164,10 +169,10 @@ function short_post() {
 	}
 	// used to grab the client's name
 	$term_list = wp_get_post_terms($post->ID, 'client');
-	
+
 	// Get the custom fields based on the $presenter term ID
 	$client_custom_fields = get_option( "taxonomy_term_".$term_list[0]->term_id );
-	if ( $client_custom_fields[client_is_prepay] != 'yes') {
+	if ( $client_custom_fields['client_is_prepay'] != 'yes') {
 		$total_hours = $total_hours + $hours_worked;
 		echo '<div class="tt-row ' . $row_color . ' ' . $class_separator . '">';
 			//echo $post->ID;
@@ -199,7 +204,7 @@ function short_post() {
 		if ( $calculate_user_total_hours == TRUE ) {
 			$user_total_hours = 0; //reset
 	}
-		
+
 		if ( !isset( $clients_hours[$client_id] ) ) {
 			$clients_hours[$client_id] = array( 'name' => $client_name, 'hours' => 0 );
 }
